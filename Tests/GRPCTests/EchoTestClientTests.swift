@@ -108,9 +108,13 @@ class EchoTestClientTests: GRPCTestCase {
     let model = EchoModel(client: client)
 
     let completed = self.expectation(description: "'Get' completed")
+    let requestSeen = self.expectation(description: "Saw request")
 
     // Enqueue a response for the next call to Get.
-    client.enqueueGetResponse(.with { $0.text = "Expected response" })
+    client.enqueueGetResponse(.with { $0.text = "Expected response" }) { request in
+        XCTAssertNotNil(request)
+        requestSeen.fulfill()
+    }
 
     model.getWord("Hello") { result in
       switch result {
@@ -123,7 +127,7 @@ class EchoTestClientTests: GRPCTestCase {
       completed.fulfill()
     }
 
-    self.wait(for: [completed], timeout: 10.0)
+    self.wait(for: [completed, requestSeen], timeout: 10.0)
   }
 
   func testGetWithRealClientAndServer() throws {
